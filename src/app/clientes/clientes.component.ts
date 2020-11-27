@@ -18,4 +18,6 @@ export class ClientesComponent implements OnInit {
     this.clientes = this.clienteService.getClientes();
   }
 
+
+  
 }
