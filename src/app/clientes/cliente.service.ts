@@ -1,11 +1,12 @@
 import { Injectable } from '@angular/core';
-import { CLIENTES } from './clientes.json';
+import { formatDate, DatePipe } from '@angular/common';
 import { Cliente } from './cliente';
 import { Observable, of, throwError } from 'rxjs';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
-import { map, catchError } from 'rxjs/operators';
+import { map, catchError, tap } from 'rxjs/operators';
 import swal from 'sweetalert2';
 import { Router } from '@angular/router';
+
 
 @Injectable({
 	providedIn: 'root'
@@ -17,10 +18,28 @@ export class ClienteService {
 
 	constructor(private http: HttpClient, private router: Router) { }
 
-	getClientes(): Observable<Cliente[]> {
-		//return of(CLIENTES);
-		return this.http.get(this.urlEndPoint).pipe(
-			map( response => response as Cliente[])
+	getClientes(page:number): Observable<any> {
+		return this.http.get(this.urlEndPoint +  '/page/' + page).pipe(
+			tap( (response : any) => {
+				(response.content as Cliente[]).forEach(cliente => {
+					console.log(cliente.nombre);
+				})
+			}),
+			map( (response:any) => {
+				(response.content as Cliente[]).map(cliente => {
+					cliente.nombre = cliente.nombre.toUpperCase();
+					//let datePipe = new DatePipe('en-US');
+					//cliente.createAt = datePipe.transform(cliente.createAt, 'dd/MM/yyyy');
+					//formatDate(cliente.createAt, 'dd-MM-yyyy', 'en-US');
+					return cliente;
+				});
+				return response;
+			}),
+			tap(response => {
+				(response.content as Cliente[]).forEach(cliente => {
+					console.log(cliente.nombre);
+				})
+			})
 		);
 	}
 
@@ -28,6 +47,10 @@ export class ClienteService {
 		return this.http.post(this.urlEndPoint, cliente,{headers: this.httpHeaders}).pipe(
 			map( (response: any) => response.cliente as Cliente),
 			catchError(e => {
+
+				if(e.status==400){
+					return throwError(e);
+				}
 				console.error(e.error.mmensaje);
 				swal(e.error.mensaje, e.error.error,'error');
 				return throwError(e);
@@ -50,6 +73,9 @@ export class ClienteService {
 	update(cliente: Cliente): Observable<any> {
 		return this.http.put<any>(`${this.urlEndPoint}/${cliente.id}`, cliente, {headers: this.httpHeaders}).pipe(
 			catchError(e => {
+				if(e.status==400){
+					return throwError(e);
+				}
 				console.error(e.error.mmensaje);
 				swal(e.error.mensaje, e.error.error,'error');
 				return throwError(e);
